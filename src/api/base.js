@@ -19,7 +19,7 @@ const request = (
     encodedBody = JSON.stringify(body);
   }
 
-  return (
+  return Observable.defer(() =>
     Observable.from(
       fetch(API_DOMAIN_URL + route, {
         method,
@@ -27,6 +27,7 @@ const request = (
         headers
       })
     )
+  )
       // TODO: This retry does not work
       .retryWhen(errors =>
         errors.delayWhen(err => {
