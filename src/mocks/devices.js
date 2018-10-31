@@ -3,7 +3,8 @@
 export const createDevice = (device?: any) => ({
   id: '0',
   name: 'deviceName',
-  selected: false,
+  port: 5000,
+  host: 'localhost',
   syncStatus: null,
 
   ...device

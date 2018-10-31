@@ -134,7 +134,6 @@ class SyncView extends React.Component<
 
   handleBack = () => {
     const { navigation } = this.props;
-    console.log('clicked back');
 
     navigation.goBack();
   };
@@ -221,7 +220,7 @@ class SyncView extends React.Component<
             </View>
           </View>
         ) : (
-          <View>
+          <View style={{flex: 1}}>
             <FlatList
               scrollEnabled
               ListHeaderComponent={

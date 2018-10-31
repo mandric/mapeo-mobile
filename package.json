@@ -16,7 +16,9 @@
     "flow start": "flow start",
     "flow stop": "flow stop",
     "flow status": "flow status",
-    "flow coverage": "flow coverage"
+    "flow coverage": "flow coverage",
+    "storybook": "storybook start",
+    "prestorybook": "rnstl"
   },
   "dependencies": {
     "@digidem/react-native-geolocation": "^1.0.3",
@@ -57,11 +59,17 @@
     "utm": "^1.1.1"
   },
   "devDependencies": {
+    "@storybook/addon-actions": "^4.0.2",
+    "@storybook/addon-links": "^4.0.2",
+    "@storybook/addons": "^4.0.2",
+    "@storybook/react-native": "^4.0.2",
     "appium": "^1.7.1",
+    "babel-core": "^6.26.3",
     "babel-eslint": "^8.2.1",
     "babel-jest": "21.2.0",
     "babel-plugin-module-resolver": "^3.0.0",
     "babel-preset-react-native": "4.0.0",
+    "babel-runtime": "^6.26.0",
     "enzyme": "^3.3.0",
     "enzyme-adapter-react-16": "^1.1.1",
     "enzyme-to-json": "^3.3.3",
@@ -79,6 +87,8 @@
     "license-check": "^1.1.5",
     "noderify": "^3.0.2",
     "prettier": "1.10.2",
+    "prop-types": "^15.6.2",
+    "react-native-storybook-loader": "^1.8.0",
     "react-test-renderer": "^16.3.2",
     "tape": "^4.8.0",
     "wd": "^1.4.1"
@@ -109,6 +119,13 @@
     "moduleNameMapper": {
       "@mapbox/react-native-mapbox-gl": "<rootDir>/__mocks__/@mapbox/react-native-mapbox-gl",
       "react-native-camera": "<rootDir>/__mocks__/react-native-camera"
+    }
+  },
+  "config": {
+    "react-native-storybook-loader": {
+      "searchDir": ["./src"],
+      "pattern": "**/*.stories.js",
+      "outputFile": "./storybook/storyLoader.js"
     }
   }
 }
