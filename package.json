@@ -103,6 +103,9 @@
     "testPathIgnorePatterns": [
       "/benchmark"
     ],
+    "modulePathIgnorePatterns": [
+      "/benchmark"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!(jest-)?react-native|react-navigation)"
     ],
