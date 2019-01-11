@@ -1,14 +1,12 @@
 language: android
-# using sudo just for performance because dockerized startup is faster but
-# overall runs slower
+# using sudo because dockerized startup is faster but overall runs slower
 sudo: required
 jdk: oraclejdk8
 #dist: trusty
 #group: edge
 
 android:
-  # supported component names are printed in build system info after travis
-  # image boot
+  # supported list of component names are printed in travis log
   components:
     # using default build tools
     # - build-tools-28.0.2
@@ -48,7 +46,7 @@ before_install:
 
 install:
   # Setup Android dependencies
-  #- sudo ln -s /usr/local/android-sdk-25.2.3 /usr/local/android-sdk-26.0.1
+  # - sudo ln -s /usr/local/android-sdk-25.2.3 /usr/local/android-sdk-26.0.1
   # Install the React Native project dependencies
   - npm install -g yarn
   - yarn
