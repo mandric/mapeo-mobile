@@ -1,0 +1,47 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
+version: 2
+jobs:
+  build:
+    # CircleCI maintains a library of pre-built images documented at
+    # https://circleci.com/docs/2.0/circleci-images/
+    docker:
+      # Build issue with Node 10 is caused by the removal of V8's
+      # object->ForceSet(), which is still used in nan@2.10.
+      # - image: circleci/android:api-26-node
+      - image: circleci/android:api-26-node8-alpha
+    environment:
+      TERM: dumb
+      JVM_OPTS: -Xmx3200m
+      #NODE_OPTIONS: "--max-old-space-size=500 --max_old_space_size=500"
+      #ADB_INSTALL_TIMEOUT: 10
+      #_JAVA_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
+      #GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-XX:+HeapDumpOnOutOfMemoryError"'
+      #ANDROID_NDK: '/opt/ndk/android-ndk-r17c'
+    parallelism: 4
+    working_directory: ~/repo
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "package.json" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run: yarn install
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+      # run tests!
+      #- run: yarn test
+      #node8-alpha
+      #- run: cd android && ./gradlew assembleDebug
+      #- run: yarn run android
+      #- run: cd android && ./gradlew --stacktrace assembleDebug
+      #- run: cd android && ./gradlew bundleAppDebugJsAndAssets
+      #- run: cd android && ./gradlew bundleBenchmarkDebugJsAndAssets
+      - run: cd android && ./gradlew assembleAppDebug
+        #- run: cd android && ./gradlew assembleDebug
