@@ -1,17 +1,82 @@
-# Javascript Node CircleCI 2.0 configuration file
 #
-# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+# Based off https://github.com/CircleCI-Public/circleci-demo-react-native.
+#
+# Also see https://circleci.com/docs/2.0/language-android/ for more help to get
+# started.
+#
+# Build and upload debug `apk` files that can be installed and tested on a
+# device or emulator using:
+#
+#   adb uninstall com.mapeomobile
+#   adb install [path to apk]
+#
+# Caveats
+#
+# If the app signing key did not change on each build then `-r` could be used
+# to preserve local app settings instead of uninstalling it completely.
+#
+#     adb install -r [path to apk]
+#
+# Keeping separate node and android jobs because later if we add ios we can
+# share the node assets.
+#
+# Avoiding `yarn run android` or `react-native run-android` because it tries to
+# install the apk so requires an emulator to be setup and running.
+#
+# Avoiding `assembleDebug` target for now because it also builds the benchmark
+# app which fails on the `bundleBenchmarkDebugJsAndAssets` target with OOM node
+# error.
+#
+#   * What went wrong:
+#   Execution failed for task ':app:bundleBenchmarkDebugJsAndAssets'.
+#   > Process 'command 'node'' finished with non-zero exit value 137
+#
 #
 version: 2
+
 jobs:
-  build:
-    # CircleCI maintains a library of pre-built images documented at
-    # https://circleci.com/docs/2.0/circleci-images/
+
+  node:
+    working_directory: ~/repo
     docker:
-      # Build issue with Node 10 is caused by the removal of V8's
-      # object->ForceSet(), which is still used in nan@2.10.
-      # - image: circleci/android:api-26-node
-      - image: circleci/android:api-26-node8-alpha
+      - image: circleci/node:8
+    steps:
+      - checkout
+      - restore_cache:
+          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
+      - restore_cache:
+          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
+      - run: yarn install
+      - save_cache:
+          key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
+          paths:
+            - ~/.cache/yarn
+      - save_cache:
+          key: node-v1-{{ checksum "package.json" }}-{{ arch }}
+          paths:
+            - node_modules
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - node_modules
+      #- run:
+      #    name: jest tests
+      #    command: |
+      #      mkdir -p test-results/jest
+      #      yarn run test
+      #    environment:
+      #      JEST_JUNIT_OUTPUT: test-results/jest/junit.xml
+      #
+      #- store_test_results:
+      #    path: test-results
+      #
+      #- store_artifacts:
+      #    path: test-results
+
+  android:
+    working_directory: ~/repo/android
+    docker:
+      - image: circleci/android:api-27-node8-alpha
     environment:
       TERM: dumb
       JVM_OPTS: -Xmx3200m
@@ -20,28 +85,31 @@ jobs:
       #_JAVA_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
       #GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-XX:+HeapDumpOnOutOfMemoryError"'
       #ANDROID_NDK: '/opt/ndk/android-ndk-r17c'
-    parallelism: 4
-    working_directory: ~/repo
+    #parallelism: 4
     steps:
-      - checkout
-      # Download and cache dependencies
+      - checkout:
+          path: ~/repo
+      - attach_workspace:
+          at: ~/repo
       - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "package.json" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-      - run: yarn install
+          key: jars-v1-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+      #- run: cd android && ./gradlew lint test
+      #- run: ./gradlew bundleBenchmarkDebugJsAndAssets
+      #- run: ./gradlew assembleAppDebug
+      - run: ./gradlew bundleAppDebugJsAndAssets assembleAppDebug
       - save_cache:
           paths:
-            - node_modules
-          key: v1-dependencies-{{ checksum "package.json" }}
-      # run tests!
-      #- run: yarn test
-      #node8-alpha
-      #- run: cd android && ./gradlew assembleDebug
-      #- run: yarn run android
-      #- run: cd android && ./gradlew --stacktrace assembleDebug
-      #- run: cd android && ./gradlew bundleAppDebugJsAndAssets
-      #- run: cd android && ./gradlew bundleBenchmarkDebugJsAndAssets
-      - run: cd android && ./gradlew assembleAppDebug
-        #- run: cd android && ./gradlew assembleDebug
+            - ~/.gradle
+          key: jars-v1-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+      - store_artifacts:
+          path: app/build/outputs/apk/
+          destination: apks/
+
+workflows:
+  version: 2
+  node-android:
+    jobs:
+      - node
+      - android:
+          requires:
+            - node
