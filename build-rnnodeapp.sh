@@ -13,11 +13,11 @@ fi
 
 echo "Installing dependencies..."
 cd ./rnnodeapp
-npm i
+yarn install
 cd ..
 
 echo "Minifying..."
-$(npm bin)/noderify \
+npx noderify \
   --filter original-fs \
   --replace.leveldown=leveldown-android-prebuilt \
   ./rnnodeapp/index.js > ./rnnodeapp/_index.js
@@ -45,6 +45,6 @@ do
 done
 
 echo "Bundling into Android..."
-$(npm bin)/react-native-node insert ./rnnodeapp
+npx react-native-node insert ./rnnodeapp
 
 echo "Done."
