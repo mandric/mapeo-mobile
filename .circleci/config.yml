@@ -1,8 +1,6 @@
 #
-# Based off https://github.com/CircleCI-Public/circleci-demo-react-native.
-#
-# Also see https://circleci.com/docs/2.0/language-android/ for more help to get
-# started.
+# Based off https://github.com/CircleCI-Public/circleci-demo-react-native and
+# https://circleci.com/docs/2.0/language-android.
 #
 # Build and upload debug `apk` files that can be installed and tested on a
 # device or emulator using:
@@ -36,7 +34,32 @@ version: 2
 
 jobs:
 
-  build:
+  rnnodeapp:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/node:8
+    steps:
+      - checkout
+      - restore_cache:
+          key: yarn-v1-{{ checksum "src/rnnodeapp/yarn.lock" }}-{{ arch }}
+      - restore_cache:
+          key: node-v1-{{ checksum "src/rnnodeapp/package.json" }}-{{ arch }}
+      - run: cd src/rnnodeapp && yarn install
+      - save_cache:
+          key: yarn-v1-{{ checksum "src/rnnodeapp/yarn.lock" }}-{{ arch }}
+          paths:
+            - ~/.cache/yarn
+      - save_cache:
+          key: node-v1-{{ checksum "src/rnnodeapp/package.json" }}-{{ arch }}
+          paths:
+            - rnnodeapp/node_modules
+      - run: yarn run build-rnnodeapp
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - android/app/src/main/res/raw/rnnodebundle
+
+  android:
     working_directory: ~/repo
     docker:
       - image: circleci/android:api-27-node8-alpha
@@ -50,6 +73,8 @@ jobs:
       #ANDROID_NDK: '/opt/ndk/android-ndk-r17c'
     steps:
       - checkout
+      - attach_workspace:
+          at: ~/repo
       - restore_cache:
           key: yarn-v1-{{ checksum "yarn.lock" }}-{{ arch }}
       - restore_cache:
@@ -63,24 +88,6 @@ jobs:
           key: node-v1-{{ checksum "package.json" }}-{{ arch }}
           paths:
             - node_modules
-      - run: node -v && npm run build-rnnodeapp
-      #- persist_to_workspace:
-      #    root: ~/repo
-      #    paths:
-      #      - node_modules
-      #- run:
-      #    name: jest tests
-      #    command: |
-      #      mkdir -p test-results/jest
-      #      yarn run test
-      #    environment:
-      #      JEST_JUNIT_OUTPUT: test-results/jest/junit.xml
-      #
-      #- store_test_results:
-      #    path: test-results
-      #
-      #- store_artifacts:
-      #    path: test-results
       - restore_cache:
           key: jars-v1-{{ checksum "android/build.gradle" }}-{{ checksum  "android/app/build.gradle" }}
       #- run: cd android && ./gradlew lint test
@@ -95,3 +102,13 @@ jobs:
       - store_artifacts:
           path: android/app/build/outputs/apk/
           destination: apks/
+
+workflows:
+  version: 2
+  mapeo-mobile:
+    jobs:
+      - rnnodeapp
+      - android:
+          requires:
+            - rnnodeapp
+
