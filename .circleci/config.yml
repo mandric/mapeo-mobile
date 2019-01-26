@@ -1,0 +1,187 @@
+#
+# Based off https://github.com/CircleCI-Public/circleci-demo-react-native and
+# https://circleci.com/docs/2.0/language-android.
+#
+# Build and upload debug `apk` files that can be installed and tested on a
+# device or emulator using:
+#
+#   adb uninstall com.mapeomobile
+#   adb install [path to apk]
+#
+# Todo
+#
+# If the app signing key did not change on each build then `-r` could be used
+# to preserve local app settings instead of uninstalling it completely.
+#
+#     adb install -r [path to apk]
+#
+# Notes
+#
+# Avoiding `yarn run android` or `react-native run-android` because it tries to
+# install the apk so requires an emulator to be setup and running.
+#
+# The `assembleDebug` gradle target initially failed because it also builds the
+# benchmark app which fails on the `bundleBenchmarkDebugJsAndAssets` target
+# with OOM node error:
+#
+#   * What went wrong:
+#   Execution failed for task ':app:bundleBenchmarkDebugJsAndAssets'.
+#   > Process 'command 'node'' finished with non-zero exit value 137
+#
+# The fix for this is to set limits on memory consumption so the process does
+# not get terminated by the container supervisors.
+#
+#   GRADLE_OPTS: -Xmx1024m
+#
+# JVM_OPTS seems to get ignored by gradle but is recommended by CircleCI
+# android example.
+#
+# See also: https://circleci.com/blog/how-to-handle-java-oom-errors/
+#
+# Use Node 8 to build the server (rnnodeapp) it fails on Node 10 with:
+#
+#   ../node_modules/nan/nan_maybe_43_inl.h:112:15: error: no member named
+#   'ForceSet' in 'v8::Object' return
+#   obj->ForceSet(isolate->GetCurrentContext(), key, value, attribs);
+#   ~~~  ^
+#
+# Node 10 removed V8's object->ForceSet(), which is still used in nan@2.10.
+#
+
+aliases:
+
+  - &restore_yarn_cache
+    keys:
+      - yarn-v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}-{{ checksum "src/rnnodeapp/yarn.lock" }}
+      - yarn-v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}-
+      - yarn-v1-{{ arch }}-{{ .Branch }}-
+  - &save_yarn_cache
+    key: yarn-v1-{{ arch }}-{{ .Branch }}-{{ checksum "yarn.lock" }}-{{ checksum "src/rnnodeapp/yarn.lock" }}
+    paths:
+      - ~/.cache/yarn
+
+  - &restore_node_cache
+    keys:
+      - node-v1-{{ arch }}-{{ .Branch }}-{{ checksum "package.json" }}
+      - node-v1-{{ arch }}-{{ .Branch }}-
+  - &save_node_cache
+    key: node-v1-{{ arch }}-{{ .Branch }}-{{ checksum "package.json" }}
+    paths:
+      - node_modules
+
+  - &restore_rnnodeapp_cache
+    keys:
+      - rnnodeapp-v1-{{ arch }}-{{ .Branch }}-{{ checksum "src/rnnodeapp/package.json" }}
+      - rnnodeapp-v1-{{ arch }}-{{ .Branch }}-
+  - &save_rnnodeapp_cache
+    key: rnnodeapp-v1-{{ arch }}-{{ .Branch }}-{{ checksum "src/rnnodeapp/package.json" }}
+    paths:
+      - src/rnnodeapp/node_modules
+
+  - &restore_gradle_cache
+    keys:
+      - gradle-v1-{{ arch }}-{{ .Branch }}-{{ checksum "android/build.gradle" }}-{{ checksum  "android/app/build.gradle" }}
+      - gradle-v1-{{ arch }}-{{ .Branch }}-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+      - gradle-v1-{{ arch }}-{{ .Branch }}-{{ checksum "build.gradle" }}-
+      - gradle-v1-{{ arch }}-{{ .Branch }}-
+  - &save_gradle_cache
+    key: gradle-v1-{{ arch }}-{{ .Branch }}-{{ checksum "android/build.gradle" }}-{{ checksum  "android/app/build.gradle" }}
+    paths:
+      - ~/.gradle
+
+version: 2
+
+jobs:
+
+  server:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/node:8
+    steps:
+      - checkout
+      - restore_cache: *restore_yarn_cache
+      - restore_cache: *restore_node_cache
+      - restore_cache: *restore_rnnodeapp_cache
+      - run: yarn install
+      - run: cd src/rnnodeapp && yarn install
+      - save_cache: *save_yarn_cache
+      - save_cache: *save_node_cache
+      - save_cache: *save_rnnodeapp_cache
+      - run: yarn run build-rnnodeapp
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - android/app/src/main/res/raw/rnnodebundle
+      - store_artifacts:
+          path: android/app/src/main/res/raw/rnnodebundle
+          destination: servers/rnnodebundle.tar
+
+  app_debug:
+    working_directory: ~/repo
+    docker:
+      #- image: circleci/android:api-27-node8-alpha
+      - image: circleci/android:api-27-node
+    environment:
+      TERM: dumb
+      JVM_OPTS: -Xmx3200m
+      GRADLE_OPTS: -Xmx1024m
+      #NODE_OPTIONS: "--max-old-space-size=512 --max_old_space_size=512"
+      #ADB_INSTALL_TIMEOUT: 10
+      #_JAVA_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
+      #GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-XX:+HeapDumpOnOutOfMemoryError"'
+      #ANDROID_NDK: '/opt/ndk/android-ndk-r17c'
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/repo
+      - run:
+          name: Test node server bundle exists
+          command: ls -al android/app/src/main/res/raw/rnnodebundle
+      - restore_cache: *restore_yarn_cache
+      - restore_cache: *restore_node_cache
+      - restore_cache: *restore_rnnodeapp_cache
+      - run: yarn install
+      - save_cache: *save_yarn_cache
+      - save_cache: *save_node_cache
+      - restore_cache: *restore_gradle_cache
+      - run: cd android && ./gradlew androidDependencies
+      - save_cache: *save_gradle_cache
+      #- run: cd android && ./gradlew lint test
+      #- run: ./gradlew bundleBenchmarkDebugJsAndAssets assembleBenchmark
+      #- run: ./gradlew assembleAppDebug
+      #  app:bundleAppDebugJsAndAssets SKIPPED
+      #- run: cd android && ./gradlew bundleAppDebugJsAndAssets
+      - run: cd android && ./gradlew bundleAppReleaseJsAndAssets
+      - run: |
+          mkdir android/app/build/intermediates/assets/app/debug && \
+          cp android/app/build/intermediates/assets/app/release/index.android.bundle* \
+             android/app/build/intermediates/assets/app/debug/
+      - run: |
+          npx react-native bundle \
+            --platform android \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output android/app/src/main/assets/index.android.bundle \
+            --assets-dest android/app/src/main/res
+      #- run: cd android && ./gradlew assembleAppDebug
+      - run: cd android && ./gradlew assembleDebug
+      - run:
+          name: Add build number to apk files
+          command: |
+            find android/app/build/outputs/apk -name \*.apk | \
+              sed "p;s/\.apk/-$CIRCLE_BUILD_NUM.apk/" | \
+                xargs -n2 mv
+      #- run: cd android && ./gradlew assembleDebug
+      - store_artifacts:
+          path: android/app/build/outputs/apk/
+          destination: apks/
+
+workflows:
+  version: 2
+  build_android:
+    jobs:
+      - server
+      - app_debug:
+          requires:
+            - server
+

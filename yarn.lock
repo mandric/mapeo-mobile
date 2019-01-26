@@ -524,9 +524,9 @@
     lodash "^4.17.5"
     to-fast-properties "^2.0.0"
 
-"@digidem/react-native-geolocation@^1.0.2":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@digidem/react-native-geolocation/-/react-native-geolocation-1.0.2.tgz#63d6e85f1edbf14b5dc74bd1ba9bc4e8b19aa02e"
+"@digidem/react-native-geolocation@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@digidem/react-native-geolocation/-/react-native-geolocation-1.0.3.tgz#0d3d13bafe9b1a1637ff2464581e380a8869035a"
 
 "@digidem/react-native-gps-state@^1.0.0":
   version "1.0.0"
@@ -7061,7 +7061,7 @@ react-native-mime-types@^2.2.1:
   dependencies:
     mime-db "~1.25.0"
 
-react-native-node@^3.3.0:
+react-native-node@^3.3.1:
   version "3.3.1"
   resolved "https://registry.yarnpkg.com/react-native-node/-/react-native-node-3.3.1.tgz#293921fb81a01a95f6906e0b0e15f343c63f1b58"
   dependencies:
@@ -7096,6 +7096,10 @@ react-native-safe-area-view@^0.8.0:
   resolved "https://registry.yarnpkg.com/react-native-safe-area-view/-/react-native-safe-area-view-0.8.0.tgz#22d78cb8e8658d04a10cd53c1546e0bc86cb7aea"
   dependencies:
     hoist-non-react-statics "^2.3.1"
+
+react-native-screens@^1.0.0-alpha.10:
+  version "1.0.0-alpha.21"
+  resolved "https://registry.yarnpkg.com/react-native-screens/-/react-native-screens-1.0.0-alpha.21.tgz#ba8d401e82fa3d0f30e7922dbb6446a8c000d7ef"
 
 react-native-svg@^6.3.1:
   version "6.3.1"
@@ -7223,6 +7227,12 @@ react-navigation-redux-helpers@^2.0.2:
   resolved "https://registry.yarnpkg.com/react-navigation-redux-helpers/-/react-navigation-redux-helpers-2.0.2.tgz#029cd5d0b50deabd2aa157afe1a2512ce205f541"
   dependencies:
     invariant "^2.2.2"
+
+react-navigation-stack@^0.5.1:
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/react-navigation-stack/-/react-navigation-stack-0.5.1.tgz#acc3c84c7b5209c7d89380d7f4576f17624f683c"
+  dependencies:
+    react-native-screens "^1.0.0-alpha.10"
 
 react-navigation-tabs@0.1.0-alpha.3:
   version "0.1.0-alpha.3"
